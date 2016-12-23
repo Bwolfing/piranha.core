@@ -11,13 +11,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Piranha.EF.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
 
-namespace Piranha.EF.Tests.Repositories {
+namespace Piranha.EF.Tests.Repositories
+{
     public class CategoryRepositoryUnitTest : RepositoryUnitTestBase<CategoryRepository> {
         #region Properties
         /// <summary>
@@ -35,6 +35,7 @@ namespace Piranha.EF.Tests.Repositories {
         }
 
         private readonly List<Data.Category> categoriesList = new List<Data.Category>();
+        
         /// <summary>
         /// Mock <see cref="DbSet" /> behind <see cref="repository" />
         /// </summary>
@@ -45,6 +46,7 @@ namespace Piranha.EF.Tests.Repositories {
         protected override void SetupMockDbData() {
             CreateCategories();
             SetupMockDbSet(mockCategoryDbSet, Categories);
+            mockDb.Setup(db => db.Categories).Returns(mockCategoryDbSet.Object);
             mockDb.Setup(db => db.Set<Data.Category>()).Returns(mockCategoryDbSet.Object);
         }
         private void CreateCategories() {
@@ -267,6 +269,102 @@ namespace Piranha.EF.Tests.Repositories {
 
             #region Assert
             Assert.Equal(expectedList.Count, result.Count);
+            #endregion
+        }
+        #endregion
+
+        #region CategoryRepository.Save
+        [Fact]
+        public void Save_NewCategoryItemCreatesNewEntry() {
+            #region Arrange
+            Guid newCategoryId = ConvertIntToGuid(NUM_CATEGORIES + 1);
+            Models.CategoryItem newCategory = new Models.CategoryItem
+            {
+                Id = newCategoryId,
+                Title = "New category",
+                Description = "A new category from a unit test",
+            };
+            #endregion
+        
+            #region Act
+            repository.Save(newCategory);
+            #endregion
+        
+            #region Assert
+            mockCategoryDbSet.Verify(db => db.Add(It.IsAny<Data.Category>()), Times.Once());
+            mockDb.Verify(db => db.SaveChanges(), Times.Once());
+            #endregion
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        [InlineData(5)]
+        public void Save_ExistingCategoryItemDoesntAddNewItem(int idAsInt) {
+            #region Arrange
+            Guid id = ConvertIntToGuid(idAsInt);
+            Models.CategoryItem categoryToSave = categoriesList.FirstOrDefault(c => c.Id == id);
+            categoryToSave.Description = "Updated Description";
+            #endregion
+        
+            #region Act
+            repository.Save(categoryToSave);
+            #endregion
+        
+            #region Assert
+            mockCategoryDbSet.Verify(db => db.Add(It.IsAny<Data.Category>()), Times.Never());
+            mockDb.Verify(db => db.SaveChanges(), Times.Once());
+            #endregion
+        }
+
+        [Fact]
+        public void Save_NewCategoryCreatesNewEntry() {
+            #region Arrange
+            Guid newCategoryId = ConvertIntToGuid(NUM_CATEGORIES + 1);
+            Models.Category newCategory = new Models.Category
+            {
+                Id = newCategoryId,
+                Description = "New category to save",
+                Title = "New category",
+            };
+            #endregion
+        
+            #region Act
+            repository.Save(newCategory);
+            #endregion
+        
+            #region Assert
+            mockCategoryDbSet.Verify(db => db.Add(It.IsAny<Data.Category>()), Times.Once());
+            mockDb.Verify(db => db.SaveChanges(), Times.Once());
+            #endregion
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        [InlineData(5)]
+        public void Save_ExistingCategoryDoesNotAddNewItem(int idAsInt) {
+            #region Arrange
+            Guid id = ConvertIntToGuid(idAsInt);
+            Models.Category categoryToUpdate = new Models.Category
+            {
+                Id = id,
+                Description = "Updated the category description",
+                Title = "Updated Category"
+            };
+            #endregion
+        
+            #region Act
+            repository.Save(categoryToUpdate);
+            #endregion
+        
+            #region Assert
+            mockCategoryDbSet.Verify(db => db.Add(It.IsAny<Data.Category>()), Times.Never());
+            mockDb.Verify(db => db.SaveChanges(), Times.Once());
             #endregion
         }
         #endregion
