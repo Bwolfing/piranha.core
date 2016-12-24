@@ -278,8 +278,7 @@ namespace Piranha.EF.Tests.Repositories
         public void Save_NewCategoryItemCreatesNewEntry() {
             #region Arrange
             Guid newCategoryId = ConvertIntToGuid(NUM_CATEGORIES + 1);
-            Models.CategoryItem newCategory = new Models.CategoryItem
-            {
+            Models.CategoryItem newCategory = new Models.CategoryItem {
                 Id = newCategoryId,
                 Title = "New category",
                 Description = "A new category from a unit test",
@@ -323,8 +322,7 @@ namespace Piranha.EF.Tests.Repositories
         public void Save_NewCategoryCreatesNewEntry() {
             #region Arrange
             Guid newCategoryId = ConvertIntToGuid(NUM_CATEGORIES + 1);
-            Models.Category newCategory = new Models.Category
-            {
+            Models.Category newCategory = new Models.Category {
                 Id = newCategoryId,
                 Description = "New category to save",
                 Title = "New category",
@@ -350,8 +348,7 @@ namespace Piranha.EF.Tests.Repositories
         public void Save_ExistingCategoryDoesNotAddNewItem(int idAsInt) {
             #region Arrange
             Guid id = ConvertIntToGuid(idAsInt);
-            Models.Category categoryToUpdate = new Models.Category
-            {
+            Models.Category categoryToUpdate = new Models.Category {
                 Id = id,
                 Description = "Updated the category description",
                 Title = "Updated Category"
@@ -368,6 +365,123 @@ namespace Piranha.EF.Tests.Repositories
             #endregion
         }
         #endregion
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        [InlineData(5)]
+        public void Delete_ExisitingGuidCallsRemove(int idAsInt) {
+            #region Arrange
+            Guid id = ConvertIntToGuid(idAsInt);
+            #endregion
+        
+            #region Act
+            repository.Delete(id);
+            #endregion
+        
+            #region Assert
+            Verify_CategoryWasDeleted(id);
+            #endregion
+        }
+
+        [Fact]
+        public void Delete_InvalidGuidNeverCallsRemove() {
+            #region Arrange
+            Guid id = ConvertIntToGuid(NUM_CATEGORIES + 1);
+            #endregion
+        
+            #region Act
+            repository.Delete(id);
+            #endregion
+        
+            #region Assert
+            Verify_CategoryWasntDeleted();
+            #endregion
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        [InlineData(5)]
+        public void Delete_ExistingCategoryCallsRemove(int idAsInt) {
+            #region Arrange
+            Guid id = ConvertIntToGuid(idAsInt);
+            Models.Category categoryToDelete = new Models.Category {
+                Id = id
+            };
+            #endregion
+        
+            #region Act
+            repository.Delete(categoryToDelete);
+            #endregion
+        
+            #region Assert
+            Verify_CategoryWasDeleted(id);
+            #endregion
+        }
+
+        [Fact]
+        public void Delete_InvalidCategoryDoesntCallRemove() {
+            #region Arrange
+            Guid id = ConvertIntToGuid(NUM_CATEGORIES + 1);
+            Models.Category categoryToDelete = new Models.Category {
+                Id = id
+            };
+            #endregion
+        
+            #region Act
+            repository.Delete(categoryToDelete);
+            #endregion
+        
+            #region Assert
+            Verify_CategoryWasntDeleted();
+            #endregion
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        [InlineData(5)]
+        public void Delete_ExistingCategoryItemCallsRemove(int idAsInt) {
+            #region Arrange
+            Guid id = ConvertIntToGuid(idAsInt);
+            Models.CategoryItem categoryToDelete = new Models.CategoryItem {
+                Id = id,
+            };
+            #endregion
+        
+            #region Act
+            repository.Delete(categoryToDelete);
+            #endregion
+        
+            #region Assert
+            Verify_CategoryWasDeleted(id);
+            #endregion
+        }
+
+        [Fact]
+        public void Delete_InvalidCategoryItemDoesntCallRemove() {
+            #region Arrange
+            Guid id = ConvertIntToGuid(NUM_CATEGORIES + 1);
+            Models.CategoryItem categoryToDelete = new Models.CategoryItem {
+                Id = id,
+            };
+            #endregion
+        
+            #region Act
+            repository.Delete(categoryToDelete);
+            #endregion
+        
+            #region Assert
+            Verify_CategoryWasntDeleted();
+            #endregion
+        }
         #endregion
 
         #region Private helper methods
@@ -390,6 +504,15 @@ namespace Piranha.EF.Tests.Repositories
                 Assert.Equal(expected.Description, actual.Description);
                 Assert.Equal(expected.Title, actual.Title);
             }
+        }
+
+        private void Verify_CategoryWasDeleted(Guid categoryId) {
+            mockCategoryDbSet.Verify(db => db.Remove(It.Is<Data.Category>(c => c.Id == categoryId)), Times.Once());
+            mockDb.Verify(db => db.SaveChanges(), Times.Once());
+        }
+        private void Verify_CategoryWasntDeleted() {
+            mockCategoryDbSet.Verify(db => db.Remove(It.IsAny<Data.Category>()), Times.Never());
+            mockDb.Verify(db => db.SaveChanges(), Times.Never());
         }
         #endregion
     }
